@@ -8,9 +8,14 @@ dotenv.config({path:'./config.env'});
 const DBAuth=process.env.DB.replace('<db_password>',process.env.DBpassword);
 
 mongoose.connect(DBAuth,{
-useUnifiedTopology: true 
+    useUnifiedTopology: true,
+    useNewUrlParser: true
 }).then((con)=>{
     console.log("DB connection successful");
+    console.log(`Connected to database: ${con.connection.name}`);
+}).catch((err)=>{
+    console.log("DB connection failed:", err.message);
+    process.exit(1);
 })
 
 process.on('unhandledRejection',err=>{
@@ -24,32 +29,13 @@ const server=app.listen(port,()=>{
     console.log(`SERVER RUNNING IN PORTNO:${port}`);
 })
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const io = require('socket.io')(server, {
   cors: {
-      origin: ['https://chat-box-samarthkadam.vercel.app','http://localhost:3000'],
+      origin: ['http://localhost:3000'],
   }
 });
 
 io.on('connection', (socket) => {
-
-   
     socket.on("setup", (userData) => {
         console.log("a user connected");
         socket.join(userData._id);
@@ -82,6 +68,16 @@ io.on('connection', (socket) => {
         if(user._id===newMessageRecieved.sender._id)return;
 
         socket.in(user._id).emit('message recieved',newMessageRecieved);
+    })
+  })
+
+  socket.on("reaction updated",(updatedMessage)=>{
+    var chat=updatedMessage.chat;
+
+    if(!chat || !chat.users)return;
+
+    chat.users.forEach((user)=>{
+        socket.in(user._id).emit('reaction recieved',updatedMessage);
     })
   })
 

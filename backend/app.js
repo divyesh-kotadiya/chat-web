@@ -9,7 +9,7 @@ const chatRouter = require("./routes/chatRouter");
 const messageRouter = require("./routes/messageRouter");
 
 
-const allowedOrigins = ['http://localhost:3000','https://chat-box-samarthkadam.vercel.app'];
+const allowedOrigins = ['http://localhost:3000'];
 app.use(cors({
   origin:'*'
 }));

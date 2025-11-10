@@ -166,3 +166,10 @@ export const addIncomingUserChatBar=(data)=>{
     payload:data
   }
 }
+
+export const updateMessageReaction=(updatedMessage)=>{
+  return {
+    type:"UPDATE_MESSAGE_REACTION",
+    payload:updatedMessage
+  }
+}

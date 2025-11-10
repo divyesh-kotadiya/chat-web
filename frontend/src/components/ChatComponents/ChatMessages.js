@@ -14,6 +14,7 @@ import { moveChatToTop } from "../../services/Actions/Chat/action";
 import { updateChatBar } from "../../services/Actions/Chat/action";
 import useSound from "use-sound";
 import { addIncomingUserChatBar } from "../../services/Actions/Chat/action";
+import { updateMessageReaction } from "../../services/Actions/Chat/action";
 import notifySound from "../../assets/sounds/notification.mp3";
 import { format, isToday, isYesterday } from "date-fns";
 
@@ -64,11 +65,19 @@ export default function ChatMessages() {
       }
     };
 
+    const reactionFn = (updatedMessage) => {
+      if (isSet !== null && isSet._id === updatedMessage.chat._id) {
+        dispatch(updateMessageReaction(updatedMessage));
+      }
+    };
+
     socket.on("message recieved", messageFn);
+    socket.on("reaction recieved", reactionFn);
     return () => {
       socket.off("message recieved", messageFn);
+      socket.off("reaction recieved", reactionFn);
     };
-  }, [isSet, dispatch, AllChats]);
+  }, [isSet, dispatch, AllChats, play]);
 
   useEffect(() => {
     if (isSet === null) return;
@@ -154,6 +163,8 @@ export default function ChatMessages() {
                   <SenderMessage
                     time={val.createdAt}
                     content={val.content}
+                    reactions={val.reactions || []}
+                    isGroupChat={isSet.isGroupChat}
                     key={index}
                   ></SenderMessage>
                 ) : (
@@ -165,6 +176,8 @@ export default function ChatMessages() {
                     index={index}
                     content={val.content}
                     time={val.createdAt}
+                    messageId={val._id}
+                    reactions={val.reactions || []}
                     key={index}
                   ></RecieverMessage>
                 )}

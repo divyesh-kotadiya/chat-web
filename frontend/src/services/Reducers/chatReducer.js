@@ -182,6 +182,16 @@ const chatReducer = (state = chatState, action) => {
           AllChats:[action.payload,...state.AllChats]
         }
 
+      case "UPDATE_MESSAGE_REACTION":
+        return {
+          ...state,
+          activeChatMessages: state.activeChatMessages.map((message) => {
+            if (message._id === action.payload._id) {
+              return action.payload;
+            }
+            return message;
+          }),
+        };
 
     default:
       return state;
