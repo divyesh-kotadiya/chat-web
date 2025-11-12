@@ -18,6 +18,7 @@ import NoChats from "./util/NoChats";
 import { MotionAnimate } from "react-motion-animate";
 import { removeChat } from "../services/Actions/Chat/action";
 import { NullifyActiveChat } from "../services/Actions/Chat/action";
+import { chatAPI } from "../api/chatApi";
 export default function HomeChat() {
   const state = useSelector((state) => state.chat.AllChats);
   const dispatch = useDispatch();
@@ -49,14 +50,7 @@ export default function HomeChat() {
     const getAllChats = async () => {
       setIsLoading(true);
       setRequestSent(true);
-      const cookie = localStorage.getItem("jwt");
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/chat`, {
-        headers: {
-          "Content-type": "application/json",
-          Authorization: `Bearer ${cookie}`,
-        },
-      });
-      const data = await response.json();
+      const { data } = await chatAPI.fetchAllChat();
       if(data.data.length===0)
       setIsEmpty(true)
 
@@ -80,7 +74,8 @@ export default function HomeChat() {
   };
 
   const openChatDetails = () => {
-    setChatModel(true);
+    setChatModel(!chatModel);
+        console.log("modal open !")
   };
   const closeChatDetails = () => {
     setChatModel(false);

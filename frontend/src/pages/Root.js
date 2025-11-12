@@ -2,47 +2,43 @@ import React from 'react'
 import logo from '../assets/images/send-mail.png'
 import Title from '../components/ChatComponents/Title'
 import Menu from '../components/RootComponents/Menu'
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigation } from 'react-router-dom';
 import UserCard from '../components/RootComponents/UserCard';
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { setUser } from '../services/Actions/User/actions';
 import { redirect } from 'react-router-dom';
 import { useLoaderData } from 'react-router-dom';
+import { userAPI } from '../api/userApi';
 
 
 export default function Root() {
- const dispatch=useDispatch();
-  const data=useLoaderData()
+ const dispatch = useDispatch();
+  const data = useLoaderData()
+  const { navigate } = useNavigation();
 
   useEffect(()=>{
     dispatch(setUser(data));
   },[dispatch,data])
 
 
-//   useEffect(()=>{
+  useEffect(()=>{
+   
+    const checkIfTokenExpired=async()=>{
     
-//     const checkIfTokenExpired=async()=>{
-//       const cookie=localStorage.getItem('jwt');
-//       const response=await fetch(`http://127.0.0.1:4000/api/v1/users/protect`,{
-//       method:'post',
-//       headers:{
-//         'Content-type':'application/json',
-//         'Authorization':`Bearer ${cookie}`
-//       }
-//     })
+    const { data } = await userAPI.protect();
   
-//     const data=await response.json();
-//     if(data.status==='success')
-//     {
-//       dispatch(setUser(data.user));
-//     }
-//     else{
-//       navigate('/');
-//     }
-//   }
-//     checkIfTokenExpired()
-//   },[dispatch,navigate])
+      if(data.status==='success')
+      {
+        dispatch(setUser(data.user));
+      }
+      else{
+        navigate('/');
+      }
+    }
+
+    checkIfTokenExpired()
+  },[dispatch,navigate])
 
   return (
     <div className='h-[100vh] flex flex-row'>
@@ -57,31 +53,23 @@ export default function Root() {
       <UserCard></UserCard>
     </div>
     </div>
-    <Outlet></Outlet>
+      <Outlet></Outlet>
     </div>
   )
 }
 
-export  async function loader({request})
+export async function loader({request})
 {
-    const cookie=localStorage.getItem('jwt');
-    const response=await fetch(`${process.env.REACT_APP_API_URL}/api/v1/users/protect`,{
-    method:'post',
-    headers:{
-      'Content-type':'application/json',
-      'Authorization':`Bearer ${cookie}`
-    }
-  })
-
-  const data=await response.json();
+  const { data } = await userAPI.protect();
 
   const parsed=JSON.stringify(data.user);
-  localStorage.setItem('info',parsed);
 
+  localStorage.setItem('info',parsed);
 
   if(data.status!=='success')
   {
     return redirect('/');
   }
+  
   return data.user;
 } 

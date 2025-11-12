@@ -7,7 +7,10 @@ import Picker from "@emoji-mart/react";
 import { socket } from "../../socket/socket";
 import { useDispatch } from "react-redux";
 import { updateMessageReaction } from "../../services/Actions/Chat/action";
-
+import { MessagesApi } from "../../api/messagesApi";
+import useSound from "use-sound";
+import AddReaction from "../../assets/sounds/reationSound.wav";
+import RemoveReaction from '../../assets/sounds/notification.mp3'
 export default function RecieverMessage({
   img,
   content,
@@ -23,7 +26,8 @@ export default function RecieverMessage({
   const [anchorEl, setAnchorEl] = useState(null);
   const dispatch = useDispatch();
   const loggedUser = JSON.parse(localStorage.getItem("info"));
-
+  const [PlayReatcionSound] = useSound(AddReaction);
+  const [PlayremoveReactionSound] = useSound(RemoveReaction);
   const handleReactionClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -34,26 +38,16 @@ export default function RecieverMessage({
 
   const handleEmojiSelect = async (emoji) => {
     handleClose();
-    const cookie = localStorage.getItem("jwt");
+    const bodyData = {
+      messageId: messageId,
+      emoji: emoji.native,
+    }
     try {
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/api/v1/message/reaction`,
-        {
-          method: "POST",
-          headers: {
-            "Content-type": "application/json",
-            Authorization: `Bearer ${cookie}`,
-          },
-          body: JSON.stringify({
-            messageId: messageId,
-            emoji: emoji.native,
-          }),
-        }
-      );
-      const data = await response.json();
+      const { data } = await MessagesApi.messageReaction(bodyData);
       if (data.status === "success") {
         dispatch(updateMessageReaction(data.data));
         socket.emit("reaction updated", data.data);
+        PlayReatcionSound();
       }
     } catch (error) {
       console.error("Error adding reaction:", error);
@@ -61,26 +55,17 @@ export default function RecieverMessage({
   };
 
   const handleReactionToggle = async (emoji) => {
-    const cookie = localStorage.getItem("jwt");
+    const bodyData = {
+      messageId: messageId,
+      emoji
+    }
+    
     try {
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/api/v1/message/reaction`,
-        {
-          method: "POST",
-          headers: {
-            "Content-type": "application/json",
-            Authorization: `Bearer ${cookie}`,
-          },
-          body: JSON.stringify({
-            messageId: messageId,
-            emoji: emoji,
-          }),
-        }
-      );
-      const data = await response.json();
+      const { data } = await MessagesApi.messageReaction(bodyData);
       if (data.status === "success") {
         dispatch(updateMessageReaction(data.data));
         socket.emit("reaction updated", data.data);
+        PlayremoveReactionSound();
       }
     } catch (error) {
       console.error("Error toggling reaction:", error);

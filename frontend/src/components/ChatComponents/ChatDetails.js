@@ -22,6 +22,8 @@ import { removeUserFromActive } from "../../services/Actions/Chat/action";
 import { NullifyActiveChat } from "../../services/Actions/Chat/action";
 import { removeChat } from "../../services/Actions/Chat/action";
 import { socket } from "../../socket/socket";
+import { chatAPI } from "../../api/chatApi";
+import { userAPI } from "../../api/userApi";
 
 
 const style = {
@@ -89,19 +91,8 @@ export default function ChatDetails({ chatModel, closeChat }) {
   };
   const searchHandler = async (value) => {
     setIsLoading(true);
-    const cookie = localStorage.getItem("jwt");
-    const response = await fetch(
-      `${process.env.REACT_APP_API_URL}/api/v1/users?search=${value}`,
-      {
-        headers: {
-          "Content-type": "application/json",
-          Authorization: `Bearer ${cookie}`,
-        },
-      }
-    );
-
+    const { data } = await userAPI.searchUsers(value);
     setIsLoading(false);
-    const data = await response.json();
     data.users.length =
       data.users.length > 2 ? (data.users.length = 2) : data.users.length;
     setResults(data.users);
@@ -116,21 +107,14 @@ export default function ChatDetails({ chatModel, closeChat }) {
   };
 
   const updateInfo = async () => {
-    const cookie = localStorage.getItem("jwt");
     const bodyData = {
       chatId: activeUser._id,
       chatName: ref.current.value,
     };
 
-    const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/chat/rename`, {
-      method: "put",
-      headers: {
-        "Content-type": "application/json",
-        Authorization: `Bearer ${cookie}`,
-      },
-      body: JSON.stringify(bodyData),
-    });
-    const data = await response.json();
+    const { data } = await chatAPI.GroupRename(bodyData);
+
+    console.log(data,"data form back")
     if (data.status === "success") {
       closeChat();
       dispatch(RenameChat(ref.current.value));
@@ -139,7 +123,6 @@ export default function ChatDetails({ chatModel, closeChat }) {
   };
 
   const addHandler = async (user) => {
-    const cookie = localStorage.getItem("jwt");
     const bodyData = {
       chatId: activeUser._id,
       userId: user._id,
@@ -153,15 +136,8 @@ export default function ChatDetails({ chatModel, closeChat }) {
       return notify("error", "User already in the group!");
     }
 
-    const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/chat/groupadd`, {
-      method: "put",
-      headers: {
-        "Content-type": "application/json",
-        Authorization: `Bearer ${cookie}`,
-      },
-      body: JSON.stringify(bodyData),
-    });
-    const data = await response.json();
+    const { data } = await chatAPI.GroupAdd(bodyData);
+
     if (data.status === "success") {
       dispatch(addNewUserToGroup(user, activeUser._id));
       dispatch(addNewUserToActive(user));
@@ -169,7 +145,6 @@ export default function ChatDetails({ chatModel, closeChat }) {
   };
 
   const removeHandler = async (userId) => {
-    const cookie = localStorage.getItem("jwt");
     const bodyData = {
       chatId: activeUser._id,
       userId: userId,
@@ -178,18 +153,8 @@ export default function ChatDetails({ chatModel, closeChat }) {
     if (loggedUser._id !== activeUser.groupAdmin._id)
       return notify("Only administrators are allowed to remove users.");
 
-    const response = await fetch(
-      `${process.env.REACT_APP_API_URL}/api/v1/chat/groupremove`,
-      {
-        method: "put",
-        headers: {
-          "Content-type": "application/json",
-          Authorization: `Bearer ${cookie}`,
-        },
-        body: JSON.stringify(bodyData),
-      }
-    );
-    const data = await response.json();
+    const { data } = await chatAPI.GroupRemove(bodyData);
+
     if (data.status === "success") {
       dispatch(removeUserFromGroup(userId, activeUser._id));
       dispatch(removeUserFromActive(userId));
@@ -201,22 +166,10 @@ export default function ChatDetails({ chatModel, closeChat }) {
       const bodyData = {
         chatId: activeUser._id,
       };
-      const cookie = localStorage.getItem("jwt");
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/api/v1/chat/deleteChat`,
-        {
-          method: "delete",
-          headers: {
-            "Content-type": "application/json",
-            Authorization: `Bearer ${cookie}`,
-          },
-          body: JSON.stringify(bodyData),
-        }
-      );
+      await chatAPI.ChatRemove(bodyData);
       socket.emit("removechatbar-send",activeUser._id)
       dispatch(NullifyActiveChat());
       dispatch(removeChat(activeUser._id));
-      // const data=await response.json();
     };
     const loggedUser = JSON.parse(localStorage.getItem("info"));
     if (activeUser.isGroupChat && loggedUser._id !== activeUser.groupAdmin._id)

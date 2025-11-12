@@ -4,6 +4,9 @@
 //       payload:{...user},
 //     };
 //   };
+
+import { chatAPI } from "../../../api/chatApi";
+
   
 
 export const AddUser= (user,users) => {
@@ -11,16 +14,7 @@ export const AddUser= (user,users) => {
   return async (dispatch,getState)=>{
 
       const info={userId:user._id};
-      const cookie=localStorage.getItem('jwt');
-      const response=await fetch(`${process.env.REACT_APP_API_URL}/api/v1/chat/`,{
-        method:'post',
-        headers:{
-          'Content-type':'application/json',
-          'Authorization':`Bearer ${cookie}`
-        },
-        body:JSON.stringify(info)
-      })
-      const data=await response.json();
+      const { data } =await chatAPI.addUser(info);
       
       dispatch({
         type : 'ADD_USER',

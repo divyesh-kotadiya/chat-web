@@ -6,34 +6,40 @@ import { useState } from 'react'
 import LoadingPage from './LoadingPage'
 
 import { useNavigate } from 'react-router-dom'
+import { userAPI } from '../api/userApi'
+import { useDispatch } from 'react-redux'
+import { setUser } from '../services/Actions/User/actions'
+
 export default function Home() {
 
-  const navigate=useNavigate();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [isLoading,setIsLoading]=useState(true);
 
   useEffect(()=>{
     
     const checkIfLoggedIn=async()=>{
-      const cookie=localStorage.getItem('jwt');
-      const response=await fetch(`${process.env.REACT_APP_API_URL}/api/v1/users/protect`,{
-      method:'post',
-      headers:{
-        'Content-type':'application/json',
-        'Authorization':`Bearer ${cookie}`
-      }
-    })
-  
-    const data=await response.json();
-    if(data.status==='success')
-    {
-     navigate('/home/message',{replace:true})
-    }
-    else{
-      setIsLoading(false);
-    }
 
-  }
+      try {
+         setIsLoading(true);
+
+         const { data } =await userAPI.protect();
+
+        if(data.status==='success')
+        {
+            navigate('/home/message',{replace:true})
+        }
+        else{
+            setIsLoading(false);
+            dispatch(setUser(data.user));
+        }
+      } catch (error) {
+           setIsLoading(false);
+      }
+    }
+  
     checkIfLoggedIn()
+
   },[navigate])
 
   return (

@@ -13,6 +13,7 @@ import useTheme from "@mui/system/useTheme";
 import InsertEmoticonIcon from "@mui/icons-material/InsertEmoticon";
 import onMicSoundFile from "../../assets/sounds/onMic.mp3";
 import offMicSoundFile from "../../assets/sounds/offMic.mp3";
+import { MessagesApi } from "../../api/messagesApi";
 
 export default function Type() {
   const isSet = useSelector((state) => state.chat.activeChat);
@@ -32,7 +33,6 @@ export default function Type() {
   const {
     transcript,
     resetTranscript,
-    browserSupportsSpeechRecognition,
   } = useSpeechRecognition();
 
   useEffect(() => {
@@ -41,9 +41,11 @@ export default function Type() {
   }, [transcript]);
 
   const resetNoSoundTimeout = () => {
+  
     if (noSoundTimeout) {
       clearTimeout(noSoundTimeout);
     }
+  
     setNoSoundTimeout(setTimeout(stopListening, 5000));
   };
 
@@ -58,14 +60,20 @@ export default function Type() {
     }
 
     let lastTypingTime = new Date().getTime();
+   
     var timerLength = 3000;
+   
     setTimeout(() => {
+   
       var timeNow = new Date().getTime();
+   
       var timeDiff = timeNow - lastTypingTime;
+   
       if (timeDiff >= timerLength && typing) {
         socket.emit("stop typing", isSet._id);
         setTyping(false);
       }
+   
       socket.emit("stop typing", isSet._id);
     }, timerLength);
   };
@@ -74,10 +82,13 @@ export default function Type() {
     if (isSet === null) return;
 
     const loggedUser = JSON.parse(localStorage.getItem("info"));
+    
     socket.emit("setup", loggedUser);
+    
     socket.on("connected", () => {
       setSocketConnected(true);
     });
+    
     socket.emit("join chat", isSet._id);
   }, [isSet]);
 
@@ -85,8 +96,11 @@ export default function Type() {
     if (isSet == null) return;
 
     resetTranscript();
+    
     SpeechRecognition.stopListening();
+    
     setMircophone(false);
+    
     setMessage("");
   }, [isSet]);
 
@@ -98,31 +112,28 @@ export default function Type() {
     if (!isValidMessage(message)) return;
 
     if (event.key === "Enter" || event.type === "click") {
+      
       event.preventDefault();
-      const cookie = localStorage.getItem("jwt");
+      
       const bodyData = {
         chatId: isSet._id,
         content: message,
       };
+      
       setMessage("");
+      
       resetTranscript();
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/api/v1/message`,
-        {
-          method: "post",
-          headers: {
-            "Content-type": "application/json",
-            Authorization: `Bearer ${cookie}`,
-          },
-          body: JSON.stringify(bodyData),
-        }
-      );
-      const data = await response.json();
+      
+      const { data } = await MessagesApi.sendMessage(bodyData);
+      
       dispatch(AddMessage(data.data));
+      
       dispatch(updateChatBar(isSet._id, data.data.content));
+      
       if (AllChats[0]._id !== isSet._id) {
         dispatch(moveChatToTop(isSet._id));
       }
+      
       socket.emit("new message", data.data);
     }
   };
@@ -139,15 +150,21 @@ export default function Type() {
 
   const startListening = () => {
     SpeechRecognition.startListening({ continuous: true, language: "en-IN" });
+    
     setMircophone(true);
+    
     if (hasMounted) onMicSound();
+    
     resetNoSoundTimeout();
   };
 
   const stopListening = () => {
     SpeechRecognition.stopListening();
+    
     setMircophone(false);
+
     if (hasMounted) offMicSound();
+    
     if (noSoundTimeout) {
       clearTimeout(noSoundTimeout);
       setNoSoundTimeout(null);
@@ -175,7 +192,6 @@ export default function Type() {
   }, []);
 
   function handleEmojiClick(emoji) {
-    const input = inputRef.current;
     if (emoji) {
       setMessage(message + emoji);
     }
@@ -253,17 +269,17 @@ export default function Type() {
       >
         <SendIcon color="action" sx={{ width: 22 }}></SendIcon>
       </div>
-      <textarea
-  ref={inputRef}
-  value={message}
-  onKeyDown={sendMessage}
-  onChange={messageHandler}
-  spellCheck="false"
-  data-gramm="false"
-  type="text"
-  placeholder="Type a message"
-  className="bg-gray-100 resize-none font-Roboto box-border max-[1024px]:px-8 px-[6%] flex text-md max-[900px]:text-sm w-[95%] py-[1%] outline-none h-[70%] rounded-3xl"
-></textarea>
+        <textarea
+            ref={inputRef}
+            value={message}
+            onKeyDown={sendMessage}
+            onChange={messageHandler}
+            spellCheck="false"
+            data-gramm="false"
+            type="text"
+            placeholder="Type a message"
+            className="bg-gray-100 resize-none font-Roboto box-border max-[1024px]:px-8 px-[6%] flex text-md max-[900px]:text-sm w-[95%] py-[1%] outline-none h-[70%] rounded-3xl"
+        ></textarea>
     </div>
   );
 }

@@ -9,6 +9,8 @@ import { useRef } from "react";
 import { useDispatch } from "react-redux";
 import { AddGroup } from "../../services/Actions/Chat/action";
 import { ToastContainer, toast } from "react-toastify";
+import { userAPI } from "../../api/userApi";
+import { chatAPI } from "../../api/chatApi";
 
 const style = {
   position: "absolute",
@@ -19,11 +21,11 @@ const style = {
   bgcolor: "background.paper",
   boxShadow: 24,
   borderRadius: "14px",
-  p: 4,
   display: "flex",
   alignItems: "center",
   flexDirection: "column",
   outline: "none",
+  p: 4,
 };
 
 export default function BasicModal({ handleClose, open }) {
@@ -62,19 +64,10 @@ export default function BasicModal({ handleClose, open }) {
 
   const searchHandler = async (value) => {
     setIsLoading(true);
-    const cookie = localStorage.getItem("jwt");
-    const response = await fetch(
-      `${process.env.REACT_APP_API_URL}/api/v1/users?search=${value}`,
-      {
-        headers: {
-          "Content-type": "application/json",
-          Authorization: `Bearer ${cookie}`,
-        },
-      }
-    );
-    const data = await response.json();
+    const { data } = await userAPI.searchUsers(value);
+
     data.users.length =
-      data.users.length > 2 ? (data.users.length = 2) : data.users.length;
+        data.users.length > 2 ? (data.users.length = 2) : data.users.length;
 
     setIsLoading(false);
 
@@ -126,20 +119,9 @@ export default function BasicModal({ handleClose, open }) {
       name: Valref.current.value,
       users: JSON.stringify(userdata),
     };
+;
+    const { data } = await chatAPI.createGroup(bodyData);
 
-    const cookie = localStorage.getItem("jwt");
-    const response = await fetch(
-      `${process.env.REACT_APP_API_URL}/api/v1/chat/group`,
-      {
-        method: "post",
-        headers: {
-          "Content-type": "application/json",
-          Authorization: `Bearer ${cookie}`,
-        },
-        body: JSON.stringify(bodyData),
-      }
-    );
-    const data = await response.json();
     if (data.status === "success") {
       notify();
     }

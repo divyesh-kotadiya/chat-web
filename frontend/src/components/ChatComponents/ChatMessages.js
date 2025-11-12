@@ -15,25 +15,28 @@ import { updateChatBar } from "../../services/Actions/Chat/action";
 import useSound from "use-sound";
 import { addIncomingUserChatBar } from "../../services/Actions/Chat/action";
 import { updateMessageReaction } from "../../services/Actions/Chat/action";
-import notifySound from "../../assets/sounds/notification.mp3";
 import { format, isToday, isYesterday } from "date-fns";
+import { MessagesApi } from "../../api/messagesApi";
+import notifySound from "../../assets/sounds/whatsapp-message.mp3";
+import AddReaction from "../../assets/sounds/reationSound.wav";
 
 export default function ChatMessages() {
+  const dispatch = useDispatch();
   const isSet = useSelector((state) => state.chat.activeChat);
   const AllChats = useSelector((state) => state.chat.AllChats);
-  const [isLoading, setIsLoading] = useState(false);
   const data = useSelector((state) => state.chat.activeChatMessages);
   const div = useRef(null);
-  const dispatch = useDispatch();
   const [play] = useSound(notifySound);
+  const [PlayReatcionSound] = useSound(AddReaction);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const loggedUser = JSON.parse(localStorage.getItem("info"));
     socket.emit("setup", loggedUser);
   }, []);
 
-  useEffect(() => {
-    const messageFn = (newMessageRecieved) => {
+    useEffect(() => {
+      const messageFn = (newMessageRecieved) => {
       const isChatBarPresent = AllChats.find(
         (val) => val._id === newMessageRecieved.chat._id
       );
@@ -65,9 +68,10 @@ export default function ChatMessages() {
       }
     };
 
-    const reactionFn = (updatedMessage) => {
+    const reactionFn = (updatedMessage) => {;
       if (isSet !== null && isSet._id === updatedMessage.chat._id) {
-        dispatch(updateMessageReaction(updatedMessage));
+            PlayReatcionSound()
+            dispatch(updateMessageReaction(updatedMessage));
       }
     };
 
@@ -84,17 +88,8 @@ export default function ChatMessages() {
 
     const getData = async () => {
       setIsLoading(true);
-      const cookie = localStorage.getItem("jwt");
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/api/v1/message/${isSet._id}`,
-        {
-          headers: {
-            "Content-type": "application/json",
-            Authorization: `Bearer ${cookie}`,
-          },
-        }
-      );
-      const data = await response.json();
+      const { data } = await MessagesApi.getAllMessages(isSet._id);
+
       if (data.status === "success") {
         dispatch(InitializeChatMessages(data.message));
       }
@@ -123,6 +118,7 @@ export default function ChatMessages() {
   
   const formatDateHeader = (date) => {
     const messageDate = new Date(date);
+   
     if (isToday(messageDate)) {
       return "Today";
     } else if (isYesterday(messageDate)) {
